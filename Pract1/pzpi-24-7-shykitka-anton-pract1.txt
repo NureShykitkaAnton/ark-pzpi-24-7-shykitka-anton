@@ -137,7 +137,7 @@
 ДОДАТОК В
 Програмний код
 В.1 Приклад оформлення структури класу та методів за стандартом PSR-12
-GitHub репозиторій: https://github.com/NureShykitkaAnton/ark-pzpi-24-7-shykitka-anton/blob/main/Pract1/examples/OrderServiceClean.php
+GitHub репозиторій: https://github.com/NureShykitkaAnton/ark-pzpi-24-7-shykitka-anton/blob/main/Pract1/pzpi-24-7-shykitka-anton-pract1/examples/OrderProcessorBad.php
  1  <?php
  2  
  3  declare(strict_types=1);
@@ -184,7 +184,7 @@ GitHub репозиторій: https://github.com/NureShykitkaAnton/ark-pzpi-24-
 44  }
 
 В.2 Приклад програмного коду з порушенням правил оформлення (до форматування та рефакторинґу)
-GitHub репозиторій: https://github.com/NureShykitkaAnton/ark-pzpi-24-7-shykitka-anton/blob/main/Pract1/examples/OrderProcessorBad.php
+GitHub репозиторій: https://github.com/NureShykitkaAnton/ark-pzpi-24-7-shykitka-anton/blob/main/Pract1/pzpi-24-7-shykitka-anton-pract1/examples/OrderProcessorClean.php
  1  <?php
  2  class ord_proc {
  3      public $d = 0;
@@ -212,7 +212,7 @@ GitHub репозиторій: https://github.com/NureShykitkaAnton/ark-pzpi-24-
 25  ?>
 
 В.3 Приклад програмного коду після приведення до стандартів PSR-1 та PSR-12
-GitHub репозиторій: https://github.com/NureShykitkaAnton/ark-pzpi-24-7-shykitka-anton/blob/main/Pract1/examples/OrderProcessorClean.php
+GitHub репозиторій: https://github.com/NureShykitkaAnton/ark-pzpi-24-7-shykitka-anton/blob/main/Pract1/pzpi-24-7-shykitka-anton-pract1/examples/OrderProcessorTest.php
  1  <?php
  2  
  3  declare(strict_types=1);
@@ -299,7 +299,7 @@ GitHub репозиторій: https://github.com/NureShykitkaAnton/ark-pzpi-24-
 84  }
 
 В.4 Приклад модульного тесту PHPUnit за шаблоном Arrange-Act-Assert
-GitHub репозиторій: https://github.com/NureShykitkaAnton/ark-pzpi-24-7-shykitka-anton/blob/main/Pract1/examples/OrderProcessorTest.php
+GitHub репозиторій: https://github.com/NureShykitkaAnton/ark-pzpi-24-7-shykitka-anton/blob/main/Pract1/pzpi-24-7-shykitka-anton-pract1/examples/OrderServiceClean.php
  1  <?php
  2  
  3  declare(strict_types=1);
