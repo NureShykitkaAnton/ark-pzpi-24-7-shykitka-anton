@@ -1,1 +1,445 @@
+Харківський національний університет радіоелектроніки
+Факультет комп’ютерних наук
+Катедра програмної інженерії
+ЗВІТ
+до практичного завдання № 2
+з дисципліни «Аналіз та рефакторинґ коду»
+на тему: «Методи рефакторингу коду програмного забезпечення: Encapsulate Field, Replace Nested Conditional with Guard Clauses, Replace Magic Number with Symbolic Constant»
+Виконав
+ст. гр. ПЗПІ-24-7
+Шикітка Антон
+Перевірив
+ст. викладач катедри ПІ
+Сокорчук Ігор Петрович
+Харків 2026
+
+1 ІСТОРІЯ ЗМІН
+№	Дата	Версія звіту	Опис змін та виправлень
+1	14.10.2026	0.1	Створено розділ «Завдання» та узгоджено три методи рефакторингу за М. Фаулером
+2	16.10.2026	0.2	Створено розділ «Опис виконаної роботи» та виконано рефакторинг прикладів коду
+3	20.10.2026	0.5	Оформлено презентацію (Додаток Б) та лістинги коду до і після рефакторингу (Додаток В)
+4	05.11.2026	1.0	Додано хронологічний опис відеозапису (Додаток А) та фіналізовано звіт за ДСТУ 3008:2015
+
+
+2 ЗАВДАННЯ
+Мета роботи: навчитися основним методам рефакторингу програмного коду на основі реальних прикладів із власних програмних проєктів, опанувати техніки ідентифікації проблемних ділянок у коді («запахів коду») та практичного застосування каталогу рефакторингів Мартіна Фаулера для підвищення якості, читабельності й підтримуваності програмного забезпечення без зміни його зовнішньої функціональності.
+Постановка завдання згідно з методичними вказівками до практичного заняття № 2 на тему «Методи рефакторингу коду програмного забезпечення»:
+1. Обрати три методи рефакторингу коду з класичної праці Мартіна Фаулера «Refactoring. Improving the Design of Existing Code»: Encapsulate Field (Інкапсуляція поля), Replace Nested Conditional with Guard Clauses (Заміна вкладених умовних операторів захисними умовами) та Replace Magic Number with Symbolic Constant (Заміна магічного числа символьною константою).
+2. Для кожного з трьох обраних методів рефакторингу навести приклади власного програмного коду до та після проведення рефакторингу.
+3. Детально описати проблему, яку вирішує кожен метод, пояснити процес перетворення коду та обґрунтувати технічні й архітектурні переваги отриманого рішення.
+4. Підготувати презентацію з 12 слайдів українською мовою, записати відеодоповідь тривалістю 7–9 хвилин та оформити звіт відповідно до вимог стандарту ДСТУ 3008:2015.
+
+3 ОПИС ВИКОНАНОЇ РОБОТИ
+3.1 Теоретичні засади та призначення рефакторингу коду
+Згідно з класичним визначенням Мартіна Фаулера, рефакторинг (refactoring) — це контрольований процес зміни внутрішньої структури програмного забезпечення без зміни його зовнішньої спостережуваної поведінки, метою якого є спрощення розуміння коду та зниження витрат на його подальшу модифікацію. У процесі активної розробки та додавання нових функцій під тиском часових обмежень у коді накопичується технічний борг та з’являються так звані «запахи коду» (Code Smells) — структурні ознаки, що сигналізують про необхідність рефакторингу.
+Для виконання практичного завдання було проаналізовано вихідний код модулів розрахунку балансу клієнта, обробки повернень коштів та калькуляції вартості доставки з власного навчального вебпроєкту електронної комерції мовою PHP. У результаті аналізу було виявлено три характерні проблеми: наявність відкритих публічних полів у доменній моделі рахунку, глибоку вкладеність умовних операторів if-else у сервісі повернення коштів та численні неіменовані числові літерали у модулі тарифів доставки. Для усунення цих проблем застосовано відповідні три методи рефакторингу з каталогу Мартіна Фаулера.
+3.2 Метод 1: Encapsulate Field (Інкапсуляція поля)
+1. Опис проблеми та доцільність рефакторингу. Одним із головних принципів об’єктно-орієнтованого програмування є модульність та інкапсуляція — приховування внутрішніх даних об’єкта від прямого зовнішнього втручання та взаємодія з ним виключно через чітко визначений контракт методів. Коли поля класу оголошуються з модифікатором видимості public, будь-який зовнішній модуль може змінювати їхні значення напряму без відома самого об’єкта. Це призводить до порушення бізнес-інваріантів: дані відокремлюються від логіки їхньої перевірки, ускладнюється відлагодження (неможливо відстежити точку зміни поля), а зміна типу чи внутрішнього формату зберігання даних вимагає переписування всього клієнтського коду.
+2. Аналіз коду до рефакторингу. У початковій версії класу рахунку клієнта CustomerAccountBad (наведено у Додатку В, підрозділ В.1) поля $ownerEmail, $balance, $bonusPoints та $isFrozen були оголошені як public. Унаслідок цього зовнішній код міг виконати операцію $account->balance -= 1200.0; навіть тоді, коли прапорець $account->isFrozen мав значення true, або встановити від’ємний баланс і від’ємну кількість бонусних балів.
+3. Застосування методу рефакторингу та код після змін. Відповідно до методу Encapsulate Field (Додаток В, підрозділ В.2, клас CustomerAccountRefactored), модифікатори видимості всіх чотирьох полів було змінено з public на private. Для читання стану створено типізовані гетери getOwnerEmail(), getBalance(), getBonusPoints() та isFrozen(). Замість примітивних сетерів, які б просто перезаписували баланс, було впроваджено предметно-орієнтовані методи модифікації стану: setOwnerEmail() (перевіряє коректність формату email за допомогою filter_var), deposit() (гарантує додатну суму поповнення), withdraw() (перевіряє, чи не заморожено рахунок, чи додатна сума та чи достатньо коштів на балансі) та addBonusPoints().
+4. Переваги отриманого коду. Завдяки інкапсуляції полів клас CustomerAccountRefactored повністю захищає власні інваріанти: неможливо перевести рахунок у некоректний стан або списати кошти в обхід правил безпеки. Крім того, вся логіка валідації сконцентрована в одному місці, що відповідає принципу єдиної відповідальності (SRP).
+3.3 Метод 2: Replace Nested Conditional with Guard Clauses (Заміна вкладених умовних операторів захисними умовами)
+1. Опис проблеми та доцільність рефакторингу. Умовні вирази зазвичай мають дві форми: перша форма — коли обидві гілки (if та else) є частиною нормальної поведінки алгоритму; друга форма — коли одна гілка є нормальною поведінкою, а інша обробляє рідкісні, граничні або помилкові ситуації. Якщо обидва види перевірок вкладати один в одного за допомогою класичних конструкцій if-else, виникає антипатерн «Стріла» (Arrow Anti-Pattern). Код зсувається вправо на 4–6 рівнів відступу, його цикломатична та когнітивна складність різко зростає, а гілки else опиняються на відстані десятків рядків від відповідних їм умов if.
+2. Аналіз коду до рефакторингу. У початковому класі RefundCalculatorBad (Додаток В, підрозділ В.3) метод calculateRefund() обчислює суму повернення коштів за замовлення і містить 5 рівнів вкладених умов if-else: перевірка оплати замовлення ($isOrderPaid), перевірка скасування замовлення (!$isOrderCancelled), перевірка типу товару (!$isDigitalProduct), перевірка 14-денного терміну ($daysSincePurchase <= 14) та перевірка цілісності пакування ($isItemOpened). Через каскад вкладених блоків else наприкінці методу вкрай важко зрозуміти, яка саме умова повертає 0.0, а яка — повну суму $orderTotal.
+3. Застосування методу рефакторингу та код після змін. Згідно з методом Replace Nested Conditional with Guard Clauses (Додаток В, підрозділ В.4, клас RefundCalculatorRefactored), вкладене дерево умов було інвертовано та замінено на послідовність незалежних плоских захисних умов (Guard Clauses) на початку методу. Якщо замовлення не оплачено (!$isOrderPaid) — метод негайно повертає 0.0. Якщо замовлення було скасовано до відправки ($isOrderCancelled) — метод одразу повертає повну суму $orderTotal. Якщо товар цифровий або минуло більше ніж MAX_RETURN_DAYS (14 діб) — повертається 0.0. Після проходження всіх захисних перевірок залишається простий розрахунок для основного сценарію.
+4. Переваги отриманого коду. Максимальна глибина вкладеності методу зменшилася з 5 рівнів до 1 рівня, кількість блоків else скоротилася з 4 до 0, а проміжна мутабельна змінна $refundAmount стала непотрібною. Логіка методу читається зверху вниз як чіткий список бізнес-правил.
+3.4 Метод 3: Replace Magic Number with Symbolic Constant (Заміна магічного числа символьною константою)
+1. Опис проблеми та доцільність рефакторингу. «Магічним числом» (Magic Number) називають числовий літерал, який зустрічається безпосередньо в тексті програми без пояснення його семантичного значення. Наявність таких чисел створює дві серйозні проблеми: по-перше, інший розробник не може без зовнішньої документації зрозуміти, що саме означає число у формулі; по-друге, якщо одне й те саме граничне значення (наприклад, базова ставка ПДВ або максимальна вага посилки) використовується в кількох виразах, то при зміні бізнес-вимог висока ймовірність оновити число в одному місці й забути в іншому.
+2. Аналіз коду до рефакторингу. У початковому класі ShippingCalculatorBad (Додаток В, підрозділ В.5) метод calculateDeliveryCost() містив вісім числових літералів: 2000.0 (поріг безкоштовної доставки), 120.0 (базовий тариф), 30.0 (двічі дублювався як ліміт стандартної ваги), 25.0 (доплата за кожен кілограм перевищення), 5 (двічі дублювався як кількість днів безкоштовного зберігання на складі), 40.0 (пеня за добу понаднормового зберігання), 0.015 (ставка страхування) та 1.20 (множник ПДВ). Щоб пояснити ці числа, автору початкового коду доводилося писати коментарі над кожним блоком if.
+3. Застосування методу рефакторингу та код після змін. У відрефактореному класі ShippingCalculatorRefactored (Додаток В, підрозділ В.6) застосовано метод Replace Magic Number with Symbolic Constant: усі числові значення винесено у типізовані константи класу у стилі UPPER_SNAKE_CASE з вказівкою одиниць вимірювання (FREE_SHIPPING_THRESHOLD_UAH, BASE_DELIVERY_FEE_UAH, MAX_STANDARD_WEIGHT_KG, OVERWEIGHT_FEE_PER_KG_UAH, FREE_STORAGE_DAYS, STORAGE_PENALTY_PER_DAY_UAH, INSURANCE_RATE, VAT_MULTIPLIER). Також введено пояснювальні змінні $overweightKg та $extraStorageDays.
+4. Переваги отриманого коду. Код став повністю самодокументованим (потреба у рядкових коментарях відпала), усунено дублювання порогових чисел 30.0 і 5 у перевірках та формулах, а зміна будь-якого тарифу тепер виконується безпечно в одному рядку оголошення константи.
+3.5 Інструменти автоматизації рефакторингу та верифікація змін
+У сучасній інженерній практиці розглянуті методи рефакторингу виконуються за підтримки спеціалізованих інструментів. Інтегровані середовища розробки, такі як JetBrains PhpStorm та IntelliJ IDEA, містять вбудовані автоматизовані команди: Encapsulate Fields (автоматично змінює область видимості поля на private, генерує гетери/сетери та замінює всі прямі звернення у проєкті), Invert If Condition (перетворює вкладений оператор if на захисну умову з раннім виходом) та Extract Constant (комбінація клавіш Ctrl+Alt+C виділяє числовий літерал у символьну константу класу та замінює всі його дублікати). Для пакетного автоматичного рефакторингу великих кодових баз у PHP застосовується інструмент трансформації абстрактного синтаксичного дерева Rector.
+Обов’язковою умовою безпечного рефакторингу є верифікація незмінності зовнішньої поведінки системи за допомогою автоматизованих тестів PHPUnit. Для всіх трьох розглянутих модулів було виконано порівняльне тестування початкових і відрефакторених класів на однакових наборах вхідних даних, яке підтвердило повну еквівалентність розрахунків при суттєвому покращенні внутрішньої структури коду.
+
+4 ВИСНОВКИ
+У результаті виконання практичного завдання № 2 було досліджено та практично застосовано методи рефакторингу програмного коду з каталогу Мартіна Фаулера на прикладах власного програмного проєкту. Основні підсумки виконаної роботи:
+– Було розглянуто теоретичні основи процесу рефакторингу, поняття технічного боргу та «запахів коду» (Code Smells), а також критерії збереження зовнішньої функціональної поведінки системи під час трансформації коду.
+– Практично застосовано метод Encapsulate Field (Інкапсуляція поля) до класу рахунку клієнта CustomerAccount, що дозволило закрити прямий доступ до полів балансу й статусу блокування та забезпечити централізовану перевірку бізнес-інваріантів у методах deposit() і withdraw().
+– Застосовано метод Replace Nested Conditional with Guard Clauses (Заміна вкладених умовних операторів захисними умовами) у сервісі RefundCalculator, завдяки чому глибину вкладеності умов зменшено з 5 до 1 рівня та повністю усунено каскад гілок else.
+– Використано метод Replace Magic Number with Symbolic Constant (Заміна магічного числа символьною константою) у класі ShippingCalculator, що дозволило замінити 8 неочевидних числових літералів на типізовані самодокументовані константи та усунути дублювання граничних значень.
+– Отримано практичні навички поєднання покрокового рефакторингу з інструментами IDE (PhpStorm), засобами автоматичної модернізації коду (Rector), статичними аналізаторами (PHPStan, SonarQube) та модульним тестуванням (PHPUnit).
+
+5 ВИКОРИСТАНІ ДЖЕРЕЛА
+1. Fowler M. Refactoring: Improving the Design of Existing Code. Reading, MA : Addison-Wesley Professional, 1999. 464 p.
+2. Fowler M. Refactoring: Improving the Design of Existing Code. 2nd ed. Boston : Addison-Wesley Professional, 2018. 448 p.
+3. Martin R. C. Clean Code: A Handbook of Agile Software Craftsmanship. Upper Saddle River, NJ : Prentice Hall, 2008. 464 p.
+4. Feathers M. Working Effectively with Legacy Code. Upper Saddle River, NJ : Prentice Hall, 2004. 456 p.
+5. McConnell S. Code Complete: A Practical Handbook of Software Construction. 2nd ed. Redmond, WA : Microsoft Press, 2004. 960 p.
+6. Refactoring.Guru : Каталог методів рефакторингу та запахів коду. URL: https://refactoring.guru/uk/refactoring (дата звернення: 19.10.2026).
+7. Encapsulate Field / Martin Fowler's Catalog of Refactorings. URL: https://refactoring.com/catalog/encapsulateField.html (дата звернення: 19.10.2026).
+8. Replace Nested Conditional with Guard Clauses / Martin Fowler's Catalog of Refactorings. URL: https://refactoring.com/catalog/replaceNestedConditionalWithGuardClauses.html (дата звернення: 19.10.2026).
+9. Rector — Automated Refactoring and Instant Upgrades for PHP : Documentation. URL: https://getrector.com/documentation (дата звернення: 19.10.2026).
+
+ДОДАТОК А
+Відеозапис
+Відеозапис доповіді на тему «Методи рефакторингу коду програмного забезпечення»: https://youtu.be/zf56AJAh5y4
+Хронологічний опис:
+00:00 — Вступ: представлення студента, теми практичного заняття № 2 та трьох обраних методів рефакторингу за Мартіном Фаулером.
+00:32— Сутність та мета рефакторингу коду ПЗ, поняття «запахів коду» та збереження зовнішньої поведінки системи.
+01:35 — Метод 1 «Інкапсуляція поля»: опис проблеми публічних полів та порушення інкапсуляції.
+02:31 — Демонстрація рефакторингу «Інкапсуляція поля» на прикладі класу рахунку клієнта (код до та після змін).
+03:26 — Метод 2 «Заміна вкладених умов захисними умовами»: аналіз проблеми глибокої вкладеності умовних конструкцій.
+04:18 — Демонстрація рефакторингу «Заміна вкладених умов захисними умовами» у сервісі повернення коштів (код до та після змін).
+05:27 — Метод 3 «Заміна магічного числа символьною константою»: проблема «магічних чисел» та демонстрація рефакторингу калькулятора доставки.
+07:23 — Покрокова верифікація рефакторингу модульними тестами, огляд інструментів автоматизації та висновки.
+
+ДОДАТОК Б
+Слайди презентації
+
+Рисунок Б.1 — Титульний слайд презентації
+
+Рисунок Б.2 — Вступ: поняття, мета та обрані методи рефакторингу коду
+
+
+Рисунок Б.3 — Теоретичне обґрунтування та схема методу Encapsulate Field
+
+Рисунок Б.4 — Код класу CustomerAccount до і після застосування Encapsulate Field
+
+
+Рисунок Б.5 — Суть методу Replace Nested Conditional with Guard Clauses
+
+Рисунок Б.6 — Код сервісу RefundCalculator до і після впровадження захисних умов
+
+
+Рисунок Б.7 — Суть методу Replace Magic Number with Symbolic Constant
+
+Рисунок Б.8 — Код класу ShippingCalculator до і після виділення символьних констант
+
+
+Рисунок Б.9 — Покрокова методика безпечного рефакторингу та верифікація через PHPUnit
+
+Рисунок Б.10 — Інструменти автоматизації рефакторингу та кількісна оцінка покращень
+
+
+Рисунок Б.11 — Висновки щодо ефективності застосованих методів рефакторингу
+
+Рисунок Б.12 — Список використаних джерел
+
+ДОДАТОК В
+Програмний код
+В.1 Програмний код класу рахунку клієнта до застосування методу Encapsulate Field
+GitHub репозиторій: https://github.com/NureShykitkaAnton/ark-pzpi-24-7-shykitka-anton/blob/main/Pract2/pzpi-24-7-shykitka-anton-pract2/examples/CustomerAccountBad.php
+ 1  <?php
+ 2  
+ 3  declare(strict_types=1);
+ 4  
+ 5  namespace App\Domain\Billing;
+ 6  
+ 7  /**
+ 8   * Клас рахунку клієнта ДО застосування методу Encapsulate Field.
+ 9   * Проблема: публічні поля дозволяють змінювати стан об'єкта напряму без валідації.
+10   */
+11  class CustomerAccountBad
+12  {
+13      public string $ownerEmail;
+14      public float $balance = 0.0;
+15      public int $bonusPoints = 0;
+16      public bool $isFrozen = false;
+17  
+18      public function __construct(string $ownerEmail, float $initialBalance = 0.0)
+19      {
+20          $this->ownerEmail = $ownerEmail;
+21          $this->balance = $initialBalance;
+22      }
+23  }
+24  
+25  // Приклад небезпечного використання у клієнтському коді:
+26  // $account = new CustomerAccountBad('student@nure.ua', 500.0);
+27  // $account->isFrozen = true;
+28  // $account->balance -= 1200.0; // Баланс став -700.0 попри заморожений рахунок!
+29  // $account->bonusPoints = -50; // Некоректне від'ємне значення бонусів!
+
+В.2 Програмний код класу рахунку клієнта після застосування методу Encapsulate Field
+GitHub репозиторій: https://github.com/NureShykitkaAnton/ark-pzpi-24-7-shykitka-anton/blob/main/Pract2/pzpi-24-7-shykitka-anton-pract2/examples/CustomerAccountRefactored.php
+ 1  <?php
+ 2  
+ 3  declare(strict_types=1);
+ 4  
+ 5  namespace App\Domain\Billing;
+ 6  
+ 7  use DomainException;
+ 8  use InvalidArgumentException;
+ 9  
+10  /**
+11   * Клас рахунку клієнта ПІСЛЯ застосування методу Encapsulate Field.
+12   * Поля інкапсульовані (private), доступ і зміна стану контролюються методами.
+13   */
+14  final class CustomerAccountRefactored
+15  {
+16      private string $ownerEmail;
+17      private float $balance;
+18      private int $bonusPoints = 0;
+19      private bool $isFrozen = false;
+20  
+21      public function __construct(string $ownerEmail, float $initialBalance = 0.0)
+22      {
+23          $this->setOwnerEmail($ownerEmail);
+24          if ($initialBalance < 0.0) {
+25              throw new InvalidArgumentException('Початковий баланс не може бути від’ємним.');
+26          }
+27          $this->balance = $initialBalance;
+28      }
+29  
+30      public function getOwnerEmail(): string
+31      {
+32          return $this->ownerEmail;
+33      }
+34  
+35      public function setOwnerEmail(string $ownerEmail): void
+36      {
+37          if (!filter_var($ownerEmail, FILTER_VALIDATE_EMAIL)) {
+38              throw new InvalidArgumentException('Некоректний формат електронної пошти.');
+39          }
+40          $this->ownerEmail = $ownerEmail;
+41      }
+42  
+43      public function getBalance(): float
+44      {
+45          return $this->balance;
+46      }
+47  
+48      public function getBonusPoints(): int
+49      {
+50          return $this->bonusPoints;
+51      }
+52  
+53      public function isFrozen(): bool
+54      {
+55          return $this->isFrozen;
+56      }
+57  
+58      public function freeze(): void
+59      {
+60          $this->isFrozen = true;
+61      }
+62  
+63      public function deposit(float $amount): void
+64      {
+65          if ($amount <= 0.0) {
+66              throw new InvalidArgumentException('Сума поповнення повинна бути більшою за нуль.');
+67          }
+68          $this->balance = round($this->balance + $amount, 2);
+69      }
+70  
+71      public function withdraw(float $amount): void
+72      {
+73          if ($this->isFrozen) {
+74              throw new DomainException('Операції заблоковано: рахунок заморожено.');
+75          }
+76          if ($amount <= 0.0) {
+77              throw new InvalidArgumentException('Сума списання повинна бути більшою за нуль.');
+78          }
+79          if ($amount > $this->balance) {
+80              throw new DomainException('Недостатньо коштів на рахунку для списання.');
+81          }
+82          $this->balance = round($this->balance - $amount, 2);
+83      }
+84  
+85      public function addBonusPoints(int $points): void
+86      {
+87          if ($points <= 0) {
+88              throw new InvalidArgumentException('Кількість бонусів має бути додатною.');
+89          }
+90          $this->bonusPoints += $points;
+91      }
+92  }
+
+В.3 Програмний код сервісу повернення коштів до застосування методу Replace Nested Conditional with Guard Clauses
+GitHub репозиторій: https://github.com/NureShykitkaAnton/ark-pzpi-24-7-shykitka-anton/blob/main/Pract2/pzpi-24-7-shykitka-anton-pract2/examples/RefundCalculatorBad.php
+ 1  <?php
+ 2  
+ 3  declare(strict_types=1);
+ 4  
+ 5  namespace App\Service\Refund;
+ 6  
+ 7  /**
+ 8   * Сервіс розрахунку суми повернення коштів ДО застосування методу
+ 9   * Replace Nested Conditional with Guard Clauses.
+10   * Проблема: глибока вкладеність умовних конструкцій if-else (Arrow Anti-Pattern).
+11   */
+12  class RefundCalculatorBad
+13  {
+14      public function calculateRefund(
+15          bool $isOrderPaid,
+16          bool $isOrderCancelled,
+17          bool $isDigitalProduct,
+18          int $daysSincePurchase,
+19          float $orderTotal,
+20          bool $isItemOpened,
+21      ): float {
+22          $refundAmount = 0.0;
+23  
+24          if ($isOrderPaid) {
+25              if (!$isOrderCancelled) {
+26                  if (!$isDigitalProduct) {
+27                      if ($daysSincePurchase <= 14) {
+28                          if ($isItemOpened) {
+29                              // Якщо пакування розкрито, утримується сервісний збір 15%
+30                              $refundAmount = round($orderTotal * 0.85, 2);
+31                          } else {
+32                              // Повне відшкодування вартості замовлення
+33                              $refundAmount = $orderTotal;
+34                          }
+35                      } else {
+36                          $refundAmount = 0.0;
+37                      }
+38                  } else {
+39                      $refundAmount = 0.0;
+40                  }
+41              } else {
+42                  $refundAmount = $orderTotal;
+43              }
+44          } else {
+45              $refundAmount = 0.0;
+46          }
+47  
+48          return $refundAmount;
+49      }
+50  }
+
+В.4 Програмний код сервісу повернення коштів після застосування методу Replace Nested Conditional with Guard Clauses
+GitHub репозиторій: https://github.com/NureShykitkaAnton/ark-pzpi-24-7-shykitka-anton/blob/main/Pract2/pzpi-24-7-shykitka-anton-pract2/examples/RefundCalculatorRefactored.php
+ 1  <?php
+ 2  
+ 3  declare(strict_types=1);
+ 4  
+ 5  namespace App\Service\Refund;
+ 6  
+ 7  /**
+ 8   * Сервіс розрахунку суми повернення коштів ПІСЛЯ застосування методу
+ 9   * Replace Nested Conditional with Guard Clauses.
+10   * Перевага: граничні перевірки винесені на початок методу, основний потік лінійний.
+11   */
+12  final class RefundCalculatorRefactored
+13  {
+14      private const int MAX_RETURN_DAYS = 14;
+15      private const float OPENED_ITEM_REFUND_FACTOR = 0.85;
+16  
+17      public function calculateRefund(
+18          bool $isOrderPaid,
+19          bool $isOrderCancelled,
+20          bool $isDigitalProduct,
+21          int $daysSincePurchase,
+22          float $orderTotal,
+23          bool $isItemOpened,
+24      ): float {
+25          if (!$isOrderPaid) {
+26              return 0.0;
+27          }
+28  
+29          if ($isOrderCancelled) {
+30              return $orderTotal;
+31          }
+32  
+33          if ($isDigitalProduct || $daysSincePurchase > self::MAX_RETURN_DAYS) {
+34              return 0.0;
+35          }
+36  
+37          if ($isItemOpened) {
+38              return round($orderTotal * self::OPENED_ITEM_REFUND_FACTOR, 2);
+39          }
+40  
+41          return $orderTotal;
+42      }
+43  }
+
+В.5 Програмний код калькулятора доставки до застосування методу Replace Magic Number with Symbolic Constant
+GitHub репозиторій: https://github.com/NureShykitkaAnton/ark-pzpi-24-7-shykitka-anton/blob/main/Pract2/pzpi-24-7-shykitka-anton-pract2/examples/ShippingCalculatorBad.php
+ 1  <?php
+ 2  
+ 3  declare(strict_types=1);
+ 4  
+ 5  namespace App\Service\Shipping;
+ 6  
+ 7  /**
+ 8   * Калькулятор доставки ДО застосування методу
+ 9   * Replace Magic Number with Symbolic Constant.
+10   * Проблема: числові літерали без пояснення змісту ускладнюють розуміння та супровід.
+11   */
+12  class ShippingCalculatorBad
+13  {
+14      public function calculateDeliveryCost(
+15          float $orderSubtotal,
+16          float $weightKg,
+17          int $storageDays,
+18      ): float {
+19          $cost = 0.0;
+20  
+21          // Якщо сума менша за 2000 грн, нараховується базовий тариф 120 грн
+22          if ($orderSubtotal < 2000.0) {
+23              $cost += 120.0;
+24          }
+25  
+26          // Якщо вага перевищує 30 кг, доплата 25 грн за кожен понаднормовий кг
+27          if ($weightKg > 30.0) {
+28              $cost += ($weightKg - 30.0) * 25.0;
+29          }
+30  
+31          // Якщо зберігання на складі понад 5 діб — пеня 40 грн за добу
+32          if ($storageDays > 5) {
+33              $cost += ($storageDays - 5) * 40.0;
+34          }
+35  
+36          // Додаємо обов'язковий страховий збір 1.5% від вартості замовлення та ПДВ 20%
+37          $insurance = $orderSubtotal * 0.015;
+38  
+39          return round(($cost + $insurance) * 1.20, 2);
+40      }
+41  }
+
+В.6 Програмний код калькулятора доставки після застосування методу Replace Magic Number with Symbolic Constant
+GitHub репозиторій: https://github.com/NureShykitkaAnton/ark-pzpi-24-7-shykitka-anton/blob/main/Pract2/pzpi-24-7-shykitka-anton-pract2/examples/ShippingCalculatorRefactored.php
+ 1  <?php
+ 2  
+ 3  declare(strict_types=1);
+ 4  
+ 5  namespace App\Service\Shipping;
+ 6  
+ 7  /**
+ 8   * Калькулятор доставки ПІСЛЯ застосування методу
+ 9   * Replace Magic Number with Symbolic Constant.
+10   * Перевага: усі бізнес-пороги і тарифи винесені у самодокументовані константи класу.
+11   */
+12  final class ShippingCalculatorRefactored
+13  {
+14      public const float FREE_SHIPPING_THRESHOLD_UAH = 2000.0;
+15      public const float BASE_DELIVERY_FEE_UAH = 120.0;
+16  
+17      public const float MAX_STANDARD_WEIGHT_KG = 30.0;
+18      public const float OVERWEIGHT_FEE_PER_KG_UAH = 25.0;
+19  
+20      public const int FREE_STORAGE_DAYS = 5;
+21      public const float STORAGE_PENALTY_PER_DAY_UAH = 40.0;
+22  
+23      public const float INSURANCE_RATE = 0.015;
+24      public const float VAT_MULTIPLIER = 1.20;
+25  
+26      public function calculateDeliveryCost(
+27          float $orderSubtotal,
+28          float $weightKg,
+29          int $storageDays,
+30      ): float {
+31          $deliveryCost = 0.0;
+32  
+33          if ($orderSubtotal < self::FREE_SHIPPING_THRESHOLD_UAH) {
+34              $deliveryCost += self::BASE_DELIVERY_FEE_UAH;
+35          }
+36  
+37          if ($weightKg > self::MAX_STANDARD_WEIGHT_KG) {
+38              $overweightKg = $weightKg - self::MAX_STANDARD_WEIGHT_KG;
+39              $deliveryCost += $overweightKg * self::OVERWEIGHT_FEE_PER_KG_UAH;
+40          }
+41  
+42          if ($storageDays > self::FREE_STORAGE_DAYS) {
+43              $extraStorageDays = $storageDays - self::FREE_STORAGE_DAYS;
+44              $deliveryCost += $extraStorageDays * self::STORAGE_PENALTY_PER_DAY_UAH;
+45          }
+46  
+47          $insuranceFee = $orderSubtotal * self::INSURANCE_RATE;
+48  
+49          return round(($deliveryCost + $insuranceFee) * self::VAT_MULTIPLIER, 2);
+50      }
+51  }
+
 
