@@ -1,0 +1,52 @@
+services:
+  db:
+    image: postgres:18
+    container_name: energymon-db
+    restart: always
+    env_file:
+      - .env
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-pguser}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme123!0}
+      POSTGRES_DB: ${POSTGRES_DB:-energymon}
+    volumes:
+      - pgdata:/var/lib/postgresql/18/docker
+    healthcheck:
+      test: [ 'CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-pguser} -d ${POSTGRES_DB:-energymon}' ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  traefik:
+    image: traefik:v3
+    container_name: energymon-traefik
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    command:
+      - '--entrypoints.web.address=:80'
+      - '--entrypoints.web.http.redirections.entrypoint.to=websecure'
+      - '--entrypoints.web.http.redirections.entrypoint.scheme=https'
+      - '--entrypoints.web.http.redirections.entrypoint.permanent=true'
+      - '--entrypoints.websecure.address=:443'
+      - '--entrypoints.websecure.http.tls=true'
+      - '--providers.file.directory=/dynamic'
+      - '--providers.file.watch=true'
+      - '--providers.docker=true'
+      - '--providers.docker.exposedbydefault=false'
+      - '--api.dashboard=true'
+      - '--api.insecure=false'
+      - '--log.level=INFO'
+      - '--accesslog=true'
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.dashboard.rule=Host(`traefik.energymon.localhost`)'
+      - 'traefik.http.routers.dashboard.entrypoints=websecure'
+      - 'traefik.http.routers.dashboard.service=api@internal'
+      - 'traefik.http.routers.dashboard.tls=true'
+
+volumes:
+  pgdata:
+

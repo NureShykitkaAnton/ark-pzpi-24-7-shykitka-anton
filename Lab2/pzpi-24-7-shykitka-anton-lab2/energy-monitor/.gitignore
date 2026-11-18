@@ -1,0 +1,39 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+.coverage
+.pytest_cache/
+.ruff_cache/
+
+# Virtual environments
+.venv
+
+# Certs
+certs/*
+
+# Secrets
+.env
+
+# Logs & Backups
+logs
+*.log
+backups/
+backend/backups/
+
+# Node & Frontend
+node_modules
+dist
+dist-ssr
+*.local
+frontend/src/routeTree.gen.ts
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+

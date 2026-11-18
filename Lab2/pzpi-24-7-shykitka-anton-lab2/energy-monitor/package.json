@@ -1,0 +1,19 @@
+{
+  "name": "energy-monitor",
+  "private": true,
+  "packageManager": "pnpm@12.4.0",
+  "scripts": {
+    "setup": "pnpm run setup:certs && cd backend && uv sync",
+    "setup:certs": "mkdir -p certs && cd certs && mkcert -install && mkcert \"energymon.localhost\" \"*.energymon.localhost\"",
+    "docker:up": "docker compose -f compose.yml -f compose.dev.yml up -d",
+    "docker:down": "docker compose -f compose.yml -f compose.dev.yml down",
+    "docker:down:v": "docker compose -f compose.yml -f compose.dev.yml down -v",
+    "migrate": "cd backend && uv run alembic upgrade head",
+    "dev:backend": "cd backend && uv run fastapi dev app/main.py --host 0.0.0.0 --port 8080",
+    "generate:api": "cd backend && uv run python -m app.scripts.export_openapi",
+    "lint:backend": "cd backend && uv run ruff check . && uv run ty check app",
+    "format:backend": "cd backend && uv run ruff format .",
+    "test:backend": "cd backend && uv run pytest"
+  }
+}
+

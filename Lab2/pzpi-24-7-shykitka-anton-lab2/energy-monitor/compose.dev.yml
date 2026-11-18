@@ -1,0 +1,51 @@
+services:
+  db:
+    ports:
+      - "127.0.0.1:5433:5432"
+
+  traefik:
+    ports:
+      - "127.0.0.1:8880:80"
+      - "127.0.0.1:8443:443"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./certs:/certs:ro
+      - ./dynamic:/dynamic:ro
+
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: energymon-mailpit
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:1026:1025"
+      - "127.0.0.1:8026:8025"
+    environment:
+      MP_MAX_MESSAGES: 5000
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.mailpit.rule=Host(`mail.energymon.localhost`)"
+      - "traefik.http.routers.mailpit.entrypoints=websecure"
+      - "traefik.http.routers.mailpit.tls=true"
+      - "traefik.http.services.mailpit.loadbalancer.server.port=8025"
+
+  pgweb:
+    image: sosedoff/pgweb:latest
+    container_name: energymon-pgweb
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-pguser}:${POSTGRES_PASSWORD:-changeme123!0}@db:5432/${POSTGRES_DB:-energymon}?sslmode=disable
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:8082:8081"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.pgweb.rule=Host(`db.energymon.localhost`)"
+      - "traefik.http.routers.pgweb.entrypoints=websecure"
+      - "traefik.http.routers.pgweb.tls=true"
+      - "traefik.http.services.pgweb.loadbalancer.server.port=8081"
+

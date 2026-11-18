@@ -1,0 +1,31 @@
+tls:
+  certificates:
+    - certFile: /certs/energymon.localhost+1.pem
+      keyFile: /certs/energymon.localhost+1-key.pem
+
+http:
+  routers:
+    frontend-router:
+      rule: "Host(`energymon.localhost`)"
+      entrypoints:
+        - "websecure"
+      tls: true
+      service: "frontend-service"
+      priority: 10
+    backend-router:
+      rule: "Host(`api.energymon.localhost`)"
+      entrypoints:
+        - "websecure"
+      tls: true
+      service: "backend-service"
+
+  services:
+    frontend-service:
+      loadBalancer:
+        servers:
+          - url: "http://host.docker.internal:5173"
+    backend-service:
+      loadBalancer:
+        servers:
+          - url: "http://host.docker.internal:8080"
+
